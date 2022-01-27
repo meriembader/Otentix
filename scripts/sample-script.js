@@ -1,32 +1,64 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
-const hre = require("hardhat");
+const { assert } = require('chai')
 
-async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+describe('EternalNFT Contract', async () => {
+    let nft
+    let nftContractAddress
+    let tokenId
 
-  // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+    // Deploys the EternalNFT contract and the EternalMarket contract before each test
+    beforeEach('Setup Contract', async () => {
+        const EternalNFT = await ethers.getContractFactory('EternalNFT')
+        nft = await EternalNFT.deploy()
+        await nft.deployed()
+        nftContractAddress = await nft.address
+    })
 
-  await greeter.deployed();
+    // Tests address for the EternalNFT contract
+    it('Should have an address', async () => {
+        assert.notEqual(nftContractAddress, 0x2118D80e3352Ad65676301ed6813bC2e9c2bD9A6)
+        assert.notEqual(nftContractAddress, '')
+        assert.notEqual(nftContractAddress, null)
+        assert.notEqual(nftContractAddress, undefined)
+    })
 
-  console.log("Greeter deployed to:", greeter.address);
-}
+    // Tests name for the token of EternalNFT contract
+    it('Should have a name', async () => {
+        // Returns the name of the token
+        const name = await nft.collectionName()
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+        assert.equal(name, 'EternalNFT')
+    })
+
+    // Tests symbol for the token of EternalNFT contract
+    it('Should have a symbol', async () => {
+        // Returns the symbol of the token
+        const symbol = await nft.collectionSymbol()
+
+        assert.equal(symbol, 'ENFT')
+    })
+
+    // Tests for NFT minting function of EternalNFT contract using tokenID of the minted NFT
+    it('Should be able to mint NFT', async () => {
+        // Mints a NFT
+        let txn = await nft.createEternalNFT()
+        let tx = await txn.wait()
+
+        // tokenID of the minted NFT
+        let event = tx.events[0]
+        let value = event.args[2]
+        tokenId = value.toNumber()
+
+        assert.equal(tokenId, 0)
+
+        // Mints another NFT
+        txn = await nft.createEternalNFT()
+        tx = await txn.wait()
+
+        // tokenID of the minted NFT
+        event = tx.events[0]
+        value = event.args[2]
+        tokenId = value.toNumber()
+
+        assert.equal(tokenId, 1)
+    })
+})
